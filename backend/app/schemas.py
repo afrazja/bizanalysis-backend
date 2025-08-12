@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
-from typing import List, Literal
+from typing import List, Literal, Any, Dict, Optional
+from datetime import datetime
 
 class ProductIn(BaseModel):
     name: str = Field(..., examples=["Product A"])
@@ -21,3 +22,12 @@ class SWOTIn(BaseModel):
 
 class SWOTOut(SWOTIn):
     pass
+
+class SnapshotIn(BaseModel):
+    kind: Literal["SWOT","BCG","PESTLE","PORTER","VRIO","ANSOFF"]
+    payload: Dict[str, Any]
+    note: Optional[str] = None
+
+class SnapshotOut(SnapshotIn):
+    id: str
+    created_at: datetime

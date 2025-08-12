@@ -1,14 +1,22 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from typing import List, Dict
+from typing import List, Dict, Optional
+from sqlalchemy.orm import Session
 
 from .config import settings
-from .schemas import ProductIn, BCGPoint, SWOTIn, SWOTOut
+from .schemas import ProductIn, BCGPoint, SWOTIn, SWOTOut, SnapshotIn, SnapshotOut
 from .services.bcg import classify_bcg
 from .services.swot import build_swot
 from .services.porter import forces_index
+from .db import Base, engine, get_db
+from .models import AnalysisSnapshot
 
 app = FastAPI(title=settings.APP_NAME, version="0.1.0")
+
+# Create tables on startup
+@app.on_event("startup")
+def on_startup():
+    Base.metadata.create_all(bind=engine)
 
 # Get CORS origins as a list
 cors_origins = settings.get_cors_origins()
@@ -49,3 +57,19 @@ async def swot(swot: SWOTIn):
 @app.post("/porter")
 async def porter(inputs: Dict[str, float]):
     return forces_index(inputs)
+
+@app.post("/snapshots", response_model=SnapshotOut)
+async def create_snapshot(body: SnapshotIn, db: Session = Depends(get_db)):
+    row = AnalysisSnapshot(kind=body.kind, payload=body.payload, note=body.note)
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return SnapshotOut(id=str(row.id), kind=row.kind, payload=row.payload, note=row.note, created_at=row.created_at)
+
+@app.get("/snapshots", response_model=list[SnapshotOut])
+async def list_snapshots(kind: Optional[str] = None, limit: int = 50, db: Session = Depends(get_db)):
+    q = db.query(AnalysisSnapshot).order_by(AnalysisSnapshot.created_at.desc())
+    if kind:
+        q = q.filter(AnalysisSnapshot.kind == kind)
+    rows = q.limit(min(limit, 200)).all()
+    return [SnapshotOut(id=str(r.id), kind=r.kind, payload=r.payload, note=r.note, created_at=r.created_at) for r in rows]

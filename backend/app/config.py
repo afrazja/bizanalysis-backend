@@ -6,14 +6,30 @@ class Settings(BaseSettings):
     APP_NAME: str = "Biz Analysis API"
     CORS_ORIGINS_RAW: str = "http://localhost:5173"
 
-    class Config:
-        env_file = ".env"
-        # Map the environment variable to our internal field
-        fields = {
-            'CORS_ORIGINS_RAW': {
-                'env': 'CORS_ORIGINS'
-            }
-        }
+    model_config = {
+        "env_file": ".env",
+        "env_prefix": "",
+        "case_sensitive": False
+    }
+
+    def get_cors_origins(self) -> List[str]:
+        """Parse comma-separated CORS origins into a list."""
+        return [x.strip() for x in self.CORS_ORIGINS_RAW.split(',') if x.strip()]
+
+# Override the field name for environment variable mapping
+class Settings(BaseSettings):
+    APP_NAME: str = "Biz Analysis API"
+    CORS_ORIGINS_RAW: str = "http://localhost:5173"
+
+    model_config = {
+        "env_file": ".env"
+    }
+
+    def __init__(self, **kwargs):
+        # Map CORS_ORIGINS env var to CORS_ORIGINS_RAW field
+        if "CORS_ORIGINS" in os.environ:
+            kwargs.setdefault("CORS_ORIGINS_RAW", os.environ["CORS_ORIGINS"])
+        super().__init__(**kwargs)
 
     def get_cors_origins(self) -> List[str]:
         """Parse comma-separated CORS origins into a list."""

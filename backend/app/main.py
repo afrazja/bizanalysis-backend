@@ -10,12 +10,13 @@ from .services.porter import forces_index
 
 app = FastAPI(title=settings.APP_NAME, version="0.1.0")
 
-# Print CORS origins for debugging
-print(f"CORS Origins: {settings.CORS_ORIGINS}")
+# Get CORS origins as a list
+cors_origins = settings.get_cors_origins()
+print(f"CORS Origins: {cors_origins}")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,  # This now calls the property
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

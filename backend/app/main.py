@@ -14,10 +14,14 @@ app = FastAPI(title=settings.APP_NAME, version="0.1.0")
 cors_origins = settings.get_cors_origins()
 print(f"CORS Origins: {cors_origins}")
 
+# Add a wildcard for development/debugging
+cors_origins.append("*")
+print(f"Final CORS Origins (with wildcard): {cors_origins}")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=cors_origins,
-    allow_credentials=True,
+    allow_origins=["*"],  # Temporarily allow all origins for debugging
+    allow_credentials=False,  # Must be False when allow_origins=["*"]
     allow_methods=["*"],
     allow_headers=["*"],
 )

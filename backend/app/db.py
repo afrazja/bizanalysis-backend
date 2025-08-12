@@ -10,7 +10,17 @@ if not DATABASE_URL:
 if DATABASE_URL.startswith("postgresql://"):
     DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg://", 1)
 
-engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+# Add connection arguments to force IPv4 and improve reliability
+engine = create_engine(
+    DATABASE_URL, 
+    pool_pre_ping=True,
+    pool_recycle=300,
+    connect_args={
+        "options": "-c default_transaction_isolation=read_committed",
+        "connect_timeout": 30,
+        "application_name": "bizanalysis-backend"
+    }
+)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
 class Base(DeclarativeBase):

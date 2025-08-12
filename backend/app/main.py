@@ -16,7 +16,12 @@ app = FastAPI(title=settings.APP_NAME, version="0.1.0")
 # Create tables on startup
 @app.on_event("startup")
 def on_startup():
-    Base.metadata.create_all(bind=engine)
+    try:
+        Base.metadata.create_all(bind=engine)
+        print("Database tables created successfully")
+    except Exception as e:
+        print(f"Warning: Could not create database tables: {e}")
+        print("Database endpoints will not work until connection is established")
 
 # Get CORS origins as a list
 cors_origins = settings.get_cors_origins()

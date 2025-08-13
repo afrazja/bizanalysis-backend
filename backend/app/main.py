@@ -5,12 +5,12 @@ from sqlalchemy.orm import Session
 import os
 
 from .config import settings
-from .schemas import ProductIn, BCGPoint, SWOTIn, SWOTOut, SnapshotIn, SnapshotOut
+from .schemas import ProductIn, BCGPoint, SWOTIn, SWOTOut, SnapshotIn, SnapshotOut, CompanyIn, CompanyOut, MarketIn, MarketOut, ProductCreate, ProductOut
 from .services.bcg import classify_bcg
 from .services.swot import build_swot
 from .services.porter import forces_index
 from .db import Base, engine, get_db, is_database_available
-from .models import AnalysisSnapshot
+from .models import AnalysisSnapshot, Company, Market, Product
 
 app = FastAPI(title=settings.APP_NAME, version="0.1.0")
 
@@ -103,3 +103,59 @@ async def db_status():
         "database_url_configured": bool(os.getenv("DATABASE_URL")),
         "message": "Database ready" if is_database_available() else "Database not available - check configuration"
     }
+
+# Companies
+@app.post("/companies", response_model=CompanyOut)
+async def create_company(body: CompanyIn, db: Session = Depends(get_db)):
+    row = Company(name=body.name, industry=body.industry, region=body.region)
+    db.add(row); db.commit(); db.refresh(row)
+    return CompanyOut(id=str(row.id), **body.model_dump())
+
+@app.get("/companies", response_model=list[CompanyOut])
+async def list_companies(db: Session = Depends(get_db)):
+    rows = db.query(Company).order_by(Company.name.asc()).all()
+    return [CompanyOut(id=str(r.id), name=r.name, industry=r.industry, region=r.region) for r in rows]
+
+# Markets
+@app.post("/markets", response_model=MarketOut)
+async def create_market(body: MarketIn, db: Session = Depends(get_db)):
+    row = Market(company_id=body.company_id, name=body.name, growth_rate=body.growth_rate, size=body.size)
+    db.add(row); db.commit(); db.refresh(row)
+    return MarketOut(id=str(row.id), **body.model_dump())
+
+@app.get("/markets", response_model=list[MarketOut])
+async def list_markets(company_id: str | None = None, db: Session = Depends(get_db)):
+    q = db.query(Market)
+    if company_id:
+        q = q.filter(Market.company_id == company_id)
+    rows = q.order_by(Market.name.asc()).all()
+    return [MarketOut(id=str(r.id), company_id=str(r.company_id) if r.company_id else None, name=r.name, growth_rate=float(r.growth_rate), size=float(r.size) if r.size is not None else None) for r in rows]
+
+# Products
+@app.post("/products", response_model=ProductOut)
+async def create_product(body: ProductCreate, db: Session = Depends(get_db)):
+    row = Product(**body.model_dump())
+    db.add(row); db.commit(); db.refresh(row)
+    return ProductOut(id=str(row.id), **body.model_dump())
+
+@app.get("/products", response_model=list[ProductOut])
+async def list_products(company_id: str | None = None, market_id: str | None = None, db: Session = Depends(get_db)):
+    q = db.query(Product)
+    if company_id:
+        q = q.filter(Product.company_id == company_id)
+    if market_id:
+        q = q.filter(Product.market_id == market_id)
+    rows = q.order_by(Product.name.asc()).all()
+    out: list[ProductOut] = []
+    for r in rows:
+        out.append(ProductOut(
+            id=str(r.id),
+            company_id=str(r.company_id) if r.company_id else None,
+            market_id=str(r.market_id) if r.market_id else None,
+            name=r.name,
+            market_share=float(r.market_share) if r.market_share is not None else None,
+            largest_rival_share=float(r.largest_rival_share) if r.largest_rival_share is not None else None,
+            price=float(r.price) if r.price is not None else None,
+            revenue=float(r.revenue) if r.revenue is not None else None,
+        ))
+    return out

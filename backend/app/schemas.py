@@ -31,3 +31,32 @@ class SnapshotIn(BaseModel):
 class SnapshotOut(SnapshotIn):
     id: str
     created_at: datetime
+
+class CompanyIn(BaseModel):
+    name: str
+    industry: Optional[str] = None
+    region: Optional[str] = None
+
+class CompanyOut(CompanyIn):
+    id: str
+
+class MarketIn(BaseModel):
+    company_id: Optional[str] = None
+    name: str
+    growth_rate: float  # percent
+    size: Optional[float] = None
+
+class MarketOut(MarketIn):
+    id: str
+
+class ProductCreate(BaseModel):
+    company_id: Optional[str] = None
+    market_id: Optional[str] = None
+    name: str
+    market_share: Optional[float] = None  # 0..1
+    largest_rival_share: Optional[float] = None  # 0..1
+    price: Optional[float] = None
+    revenue: Optional[float] = None
+
+class ProductOut(ProductCreate):
+    id: str

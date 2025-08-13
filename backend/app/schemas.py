@@ -77,3 +77,15 @@ class SuggestSWOTIn(BaseModel):
     products: List[ProductCtx] = []
     # optional: pass computed BCG points directly
     points: Optional[List[BCGPoint]] = None
+
+class MarketsBulkIn(BaseModel):
+    items: List[MarketIn]
+
+class ProductsBulkIn(BaseModel):
+    items: List[ProductCreate]
+
+class MarketsBulkOut(BaseModel):
+    items: List[MarketOut]
+
+class ProductsBulkOut(BaseModel):
+    items: List[ProductOut]

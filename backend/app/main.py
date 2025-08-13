@@ -7,7 +7,7 @@ import os
 import uuid
 
 from .config import settings
-from .schemas import ProductIn, BCGPoint, SWOTIn, SWOTOut, SnapshotIn, SnapshotOut, CompanyIn, CompanyOut, MarketIn, MarketOut, ProductCreate, ProductOut, SuggestSWOTIn
+from .schemas import ProductIn, BCGPoint, SWOTIn, SWOTOut, SnapshotIn, SnapshotOut, CompanyIn, CompanyOut, MarketIn, MarketOut, ProductCreate, ProductOut, SuggestSWOTIn, MarketsBulkIn, ProductsBulkIn, MarketsBulkOut, ProductsBulkOut
 from .services.bcg import classify_bcg
 from .services.swot import build_swot
 from .services.porter import forces_index
@@ -162,6 +162,27 @@ async def list_products(company_id: str | None = None, market_id: str | None = N
             revenue=float(r.revenue) if r.revenue is not None else None,
         ))
     return out
+
+# Bulk endpoints
+@app.post("/markets/bulk", response_model=MarketsBulkOut)
+async def markets_bulk(body: MarketsBulkIn, db: Session = Depends(get_db)):
+    out = []
+    for m in body.items:
+        row = Market(company_id=m.company_id, name=m.name, growth_rate=m.growth_rate, size=m.size)
+        db.add(row); db.flush(); db.refresh(row)
+        out.append(MarketOut(id=str(row.id), **m.model_dump()))
+    db.commit()
+    return MarketsBulkOut(items=out)
+
+@app.post("/products/bulk", response_model=ProductsBulkOut)
+async def products_bulk(body: ProductsBulkIn, db: Session = Depends(get_db)):
+    out = []
+    for p in body.items:
+        row = Product(**p.model_dump())
+        db.add(row); db.flush(); db.refresh(row)
+        out.append(ProductOut(id=str(row.id), **p.model_dump()))
+    db.commit()
+    return ProductsBulkOut(items=out)
 
 @app.get("/snapshots/{sid}", response_model=SnapshotOut)
 async def get_snapshot_by_id(sid: str, db: Session = Depends(get_db)):

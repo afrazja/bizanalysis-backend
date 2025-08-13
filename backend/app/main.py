@@ -2,7 +2,9 @@ from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Dict, Optional
 from sqlalchemy.orm import Session
+from sqlalchemy import select
 import os
+import uuid
 
 from .config import settings
 from .schemas import ProductIn, BCGPoint, SWOTIn, SWOTOut, SnapshotIn, SnapshotOut, CompanyIn, CompanyOut, MarketIn, MarketOut, ProductCreate, ProductOut
@@ -159,3 +161,17 @@ async def list_products(company_id: str | None = None, market_id: str | None = N
             revenue=float(r.revenue) if r.revenue is not None else None,
         ))
     return out
+
+@app.get("/snapshots/{sid}", response_model=SnapshotOut)
+async def get_snapshot_by_id(sid: str, db: Session = Depends(get_db)):
+    if not is_database_available():
+        raise HTTPException(status_code=503, detail="Database service unavailable")
+    
+    try:
+        # For SQLite compatibility, we use string IDs
+        row = db.query(AnalysisSnapshot).filter(AnalysisSnapshot.id == sid).first()
+        if not row:
+            raise HTTPException(status_code=404, detail="Snapshot not found")
+        return SnapshotOut(id=str(row.id), kind=row.kind, payload=row.payload, note=row.note, created_at=row.created_at)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")

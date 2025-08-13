@@ -20,6 +20,9 @@ class Settings(BaseSettings):
 class Settings(BaseSettings):
     APP_NAME: str = "Biz Analysis API"
     CORS_ORIGINS_RAW: str = "http://localhost:5173"
+    AI_ENABLED: bool = False  # flip to True when wiring a provider
+    LLM_PROVIDER: str | None = None  # e.g., "openai" or "azure_openai"
+    LLM_API_KEY: str | None = None
 
     model_config = {
         "env_file": ".env"

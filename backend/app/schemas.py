@@ -60,3 +60,20 @@ class ProductCreate(BaseModel):
 
 class ProductOut(ProductCreate):
     id: str
+
+class MarketCtx(BaseModel):
+    name: str
+    growth_rate: float  # percent
+
+class ProductCtx(BaseModel):
+    name: str
+    market_share: float  # 0..1
+    largest_rival_share: float  # 0..1
+
+class SuggestSWOTIn(BaseModel):
+    company: Optional[str] = None
+    industry: Optional[str] = None
+    markets: List[MarketCtx] = []
+    products: List[ProductCtx] = []
+    # optional: pass computed BCG points directly
+    points: Optional[List[BCGPoint]] = None

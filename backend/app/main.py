@@ -7,10 +7,11 @@ import os
 import uuid
 
 from .config import settings
-from .schemas import ProductIn, BCGPoint, SWOTIn, SWOTOut, SnapshotIn, SnapshotOut, CompanyIn, CompanyOut, MarketIn, MarketOut, ProductCreate, ProductOut
+from .schemas import ProductIn, BCGPoint, SWOTIn, SWOTOut, SnapshotIn, SnapshotOut, CompanyIn, CompanyOut, MarketIn, MarketOut, ProductCreate, ProductOut, SuggestSWOTIn
 from .services.bcg import classify_bcg
 from .services.swot import build_swot
 from .services.porter import forces_index
+from .services.ai_suggest import suggest_swot
 from .db import Base, engine, get_db, is_database_available
 from .models import AnalysisSnapshot, Company, Market, Product
 
@@ -175,3 +176,8 @@ async def get_snapshot_by_id(sid: str, db: Session = Depends(get_db)):
         return SnapshotOut(id=str(row.id), kind=row.kind, payload=row.payload, note=row.note, created_at=row.created_at)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+@app.post("/ai/suggest-swot", response_model=SWOTOut)
+async def ai_suggest_swot(body: SuggestSWOTIn) -> SWOTOut:
+    # For now, always use deterministic heuristic suggester (no external calls)
+    return suggest_swot(body)

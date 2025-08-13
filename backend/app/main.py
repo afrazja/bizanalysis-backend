@@ -166,6 +166,9 @@ async def list_products(company_id: str | None = None, market_id: str | None = N
 # Bulk endpoints
 @app.post("/markets/bulk", response_model=MarketsBulkOut)
 async def markets_bulk(body: MarketsBulkIn, db: Session = Depends(get_db)):
+    if not is_database_available():
+        raise HTTPException(status_code=503, detail="Database service unavailable")
+    
     out = []
     for m in body.items:
         row = Market(company_id=m.company_id, name=m.name, growth_rate=m.growth_rate, size=m.size)
@@ -176,6 +179,9 @@ async def markets_bulk(body: MarketsBulkIn, db: Session = Depends(get_db)):
 
 @app.post("/products/bulk", response_model=ProductsBulkOut)
 async def products_bulk(body: ProductsBulkIn, db: Session = Depends(get_db)):
+    if not is_database_available():
+        raise HTTPException(status_code=503, detail="Database service unavailable")
+    
     out = []
     for p in body.items:
         row = Product(**p.model_dump())
